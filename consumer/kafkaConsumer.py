@@ -4,7 +4,7 @@ import json
 
 consumer = KafkaConsumer(
       'parking.events.raw',
-      bootstrap_servers='localhost:9092',
+      bootstrap_servers='kafka:29092',
       auto_offset_reset='earliest',
       group_id='parking-db-writer',
       value_deserializer=lambda val: json.loads(val.decode('utf-8'))

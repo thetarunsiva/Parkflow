@@ -13,8 +13,10 @@ services:
             environment:
                   KAFKA_BROKER_ID: 1
                   KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-                  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-                  KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+                  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+                  KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+                  KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092,PLAINTEXT://kafka:29092
+                  KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
                   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
             ports:
                   - "9092:9092"
@@ -28,5 +30,20 @@ services:
                   - "5432:5432"
             volumes:
                   - postgres_data:/var/lib/postgresql/data
+      spark:
+            image: apache/spark:4.0.0
+            user: root
+            depends_on:
+                  - kafka
+                  - postgres
+            volumes:
+                  - ./spark:/opt/spark-apps
+                  - spark-ivy:/opt/ivy
+            command: >
+                  /opt/spark/bin/spark-submit
+                  --conf spark.jars.ivy=/opt/ivy
+                  --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.0
+                  /opt/spark-apps/streaming_job.py
 volumes:
       postgres_data:
+      spark-ivy:
