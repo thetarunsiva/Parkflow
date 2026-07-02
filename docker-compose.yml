@@ -6,6 +6,9 @@ services:
                   ZOOKEEPER_TICK_TIME: 2000
             ports:
                   - "2181:2181"
+            volumes:
+                  - zookeeper_data:/var/lib/zookeeper/data
+                  - zookeeper_log:/var/lib/zookeeper/log
       kafka:
             image: confluentinc/cp-kafka:7.6.1
             depends_on:
@@ -20,6 +23,21 @@ services:
                   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
             ports:
                   - "9092:9092"
+            volumes:
+                  - kafka_data:/var/lib/kafka/data
+            healthcheck:
+                  test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+                  interval: 5s
+                  timeout: 10s
+                  retries: 5
+      kafka-init:
+            image: confluentinc/cp-kafka:7.6.1
+            depends_on:
+                  kafka:
+                        condition: service_healthy
+            entrypoint: ["/bin/sh", "-c"]
+            command: >
+                  "kafka-topics --create --if-not-exists --topic parkflow.events.raw --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1"
       postgres:
             image: postgres:16
             environment:
@@ -34,8 +52,12 @@ services:
             image: apache/spark:4.0.0
             user: root
             depends_on:
-                  - kafka
-                  - postgres
+                  kafka:
+                        condition: service_healthy
+                  kafka-init:
+                        condition: service_completed_successfully
+                  postgres:
+                        condition: service_started
             volumes:
                   - ./spark:/opt/spark-apps
                   - spark-ivy:/opt/ivy
@@ -46,4 +68,7 @@ services:
                   /opt/spark-apps/streaming_job.py
 volumes:
       postgres_data:
+      kafka_data:
       spark-ivy:
+      zookeeper_data:
+      zookeeper_log:

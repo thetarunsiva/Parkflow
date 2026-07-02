@@ -12,11 +12,11 @@ event =  {
       "event_id": str(uuid.uuid4()),
       "event_type": "ENTRY",
       "timestamp": datetime.now(UTC).isoformat(),
-      "slot_id": "T1",
+      "slot_id": "T2",
       "lot_id": "LOT_1"
 }
 
-producer.send('parking.events.raw', event)
+producer.send('parkflow.events.raw', event)
 producer.flush()
 
 print("Produced event: ")

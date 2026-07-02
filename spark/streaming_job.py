@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
+from pyspark.sql.functions import *
 from pyspark.sql.types import *
 
 spark = (
@@ -18,7 +18,7 @@ events = (
       )
       .option(
             "subscribe",
-            "parking.events.raw"
+            "parkflow.events.raw"
       )
       .load()
 )
@@ -48,14 +48,26 @@ parsed_events = json_events.select(
 )
 
 parsed_events = parsed_events.select("event.*", "offset", "partition", "kafka_timestamp")
+parsed_events = parsed_events.withColumn("event_timestamp", to_timestamp("timestamp"))
 parsed_events.printSchema()
 
+status_events = parsed_events.withColumn(
+      "occupied",
+      when(col("event_type") == "ENTRY", True)
+      .otherwise(False)
+)
+
+def process_batch(batch_df, batch_id):
+      print(f"Processing batch {batch_id}..\n")
+      batch_df.show(truncate=False)
+
 query = (
-      parsed_events.writeStream
-      .format("console")
+      status_events.writeStream
+      .foreachBatch(process_batch)
       .outputMode("append")
       .start()
 )
+
 
 print("Spark connected to Kafka..")
 query.awaitTermination()
