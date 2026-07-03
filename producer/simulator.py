@@ -10,9 +10,9 @@ producer = KafkaProducer(
 
 event =  {
       "event_id": str(uuid.uuid4()),
-      "event_type": "ENTRY",
+      "event_type": "EXIT",
       "timestamp": datetime.now(UTC).isoformat(),
-      "slot_id": "T2",
+      "slot_id": "T4",
       "lot_id": "LOT_1"
 }
 
