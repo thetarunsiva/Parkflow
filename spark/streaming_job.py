@@ -126,7 +126,7 @@ def process_batch(batch_df, batch_id):
             )
             total_count = db_cursor.fetchone()[0]
             available_count = total_count - occupied_count
-            occupancy_pt = (occupied_count / total_count) * 100 if total_count > 0 else 0
+            occupancy_pt = (occupied_count * 100.0 / total_count) if total_count > 0 else 0.0
             db_cursor.execute(
                   """
                   INSERT INTO lot_occupancy (lot_id, total_slots, occupied_slots, available_slots, occupancy_percentage, last_updated) 

@@ -12,7 +12,7 @@ event =  {
       "event_id": str(uuid.uuid4()),
       "event_type": "ENTRY",
       "timestamp": datetime.now(UTC).isoformat(),
-      "slot_id": "T2",
+      "slot_id": "T3",
       "lot_id": "LOT_3"
 }
 
