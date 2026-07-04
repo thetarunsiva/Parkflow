@@ -76,7 +76,8 @@ def process_batch(batch_df, batch_id):
                   """
                   INSERT INTO slot_events (event_id, slot_id, lot_id, event_type, event_time) VALUES (
                         %s, %s, %s, %s, %s
-                  );
+                  )
+                  ON CONFLICT (event_id) DO NOTHING;
                   """,
                   (
                         current_event.event_id,
@@ -103,6 +104,46 @@ def process_batch(batch_df, batch_id):
                         current_event.occupied,
                         current_event.event_id,
                         current_event.event_timestamp
+                  )
+            )
+
+      affected_lots = { event.lot_id for event in current_batch_events }
+      for lot_id in affected_lots:
+            db_cursor.execute(
+                  """
+                  SELECT COUNT(*) FROM slot_status
+                  WHERE lot_id = %s AND occupied = TRUE;
+                  """,
+                  (lot_id,)
+            )
+            occupied_count = db_cursor.fetchone()[0]
+            db_cursor.execute(
+                  """
+                  SELECT COUNT(*) FROM parking_slots 
+                  WHERE lot_id = %s;
+                  """,
+                  (lot_id,)
+            )
+            total_count = db_cursor.fetchone()[0]
+            available_count = total_count - occupied_count
+            occupancy_pt = (occupied_count / total_count) * 100 if total_count > 0 else 0
+            db_cursor.execute(
+                  """
+                  INSERT INTO lot_occupancy (lot_id, total_slots, occupied_slots, available_slots, occupancy_percentage, last_updated) 
+                  VALUES (%s, %s, %s, %s, %s, NOW())
+                  ON CONFLICT (lot_id) DO UPDATE SET
+                  total_slots = EXCLUDED.total_slots,
+                  occupied_slots = EXCLUDED.occupied_slots,
+                  available_slots = EXCLUDED.available_slots,
+                  occupancy_percentage = EXCLUDED.occupancy_percentage,
+                  last_updated = NOW();
+                  """,
+                  (
+                        lot_id,
+                        total_count,
+                        occupied_count,
+                        available_count,
+                        occupancy_pt
                   )
             )
 

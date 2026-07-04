@@ -1,3 +1,17 @@
+CREATE TABLE IF NOT EXISTS parking_lots (
+      lot_id VARCHAR(50) PRIMARY KEY,
+      lot_name VARCHAR(100) NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS parking_slots (
+      slot_id VARCHAR(50) NOT NULL,
+      lot_id VARCHAR(50) NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (slot_id, lot_id),
+      FOREIGN KEY (lot_id) REFERENCES parking_lots(lot_id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS slot_events (
       event_id UUID PRIMARY KEY,
       slot_id VARCHAR(50) NOT NULL,

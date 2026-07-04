@@ -10,10 +10,10 @@ producer = KafkaProducer(
 
 event =  {
       "event_id": str(uuid.uuid4()),
-      "event_type": "EXIT",
+      "event_type": "ENTRY",
       "timestamp": datetime.now(UTC).isoformat(),
-      "slot_id": "T4",
-      "lot_id": "LOT_1"
+      "slot_id": "T2",
+      "lot_id": "LOT_3"
 }
 
 producer.send('parkflow.events.raw', event)
