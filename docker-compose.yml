@@ -48,6 +48,8 @@ services:
                   - "5432:5432"
             volumes:
                   - postgres_data:/var/lib/postgresql/data
+                  - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+                  - ./database/seed.sql:/docker-entrypoint-initdb.d/seed.sql
       spark:
             build:
                   context: .
