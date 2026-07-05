@@ -1,23 +1,25 @@
-from kafka import KafkaProducer
-import uuid
-import json
-from datetime import datetime, UTC
+from state_manager import init_state, apply_event
+from event_generator import generate_event
+from event_publisher import publish_event
 
-producer = KafkaProducer(
-      bootstrap_servers='localhost:9092',
-      value_serializer=lambda val: json.dumps(val).encode('utf-8')
-)
+from config import MIN_DELAY_SECONDS, MAX_DELAY_SECONDS
 
-event =  {
-      "event_id": str(uuid.uuid4()),
-      "event_type": "ENTRY",
-      "timestamp": datetime.now(UTC).isoformat(),
-      "slot_id": "T3",
-      "lot_id": "LOT_3"
-}
+import time
+import random
 
-producer.send('parkflow.events.raw', event)
-producer.flush()
+state = init_state()
 
-print("Produced event: ")
-print(event)
+try:
+      while True:
+            event = generate_event(state)
+            success = publish_event(event)
+            if not success:
+                  print(f"Failed to publish event: {event['event_id']}..")
+                  continue
+            apply_event(state, event)
+            print(f"[{event['event_type']}] " f"{event['lot_id']} - {event['slot_id']}")
+            time.sleep(random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS))
+except KeyboardInterrupt:
+      print("\nParkflow simulation stopping..")
+      time.sleep(1)
+      print("Parkflow simulation finished!")

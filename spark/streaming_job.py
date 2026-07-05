@@ -38,7 +38,7 @@ event_schema = StructType([
       StructField("event_type", StringType()),
       StructField("slot_id", StringType()),
       StructField("lot_id", StringType()),
-      StructField("timestamp", StringType())
+      StructField("event_time", StringType())
 ])
 
 # This has a nested struct type, needs flatening..
@@ -50,7 +50,7 @@ parsed_events = json_events.select(
 )
 
 parsed_events = parsed_events.select("event.*", "offset", "partition", "kafka_timestamp")
-parsed_events = parsed_events.withColumn("event_timestamp", to_timestamp("timestamp"))
+parsed_events = parsed_events.withColumn("event_timestamp", to_timestamp("event_time"))
 parsed_events.printSchema()
 
 status_events = parsed_events.withColumn(
