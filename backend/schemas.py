@@ -3,6 +3,7 @@ from datetime import datetime
 
 class LotOccupancy(BaseModel):
       lot_id: str
+      lot_name: str
       occupied_slots: int
       available_slots: int
       total_slots: int

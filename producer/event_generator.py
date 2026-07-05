@@ -1,10 +1,10 @@
 import uuid
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from state_manager import partition_slots
 
 def event(lot_id, slot_id, event_type):
-      timestamp = datetime.now().isoformat()
+      timestamp = datetime.now(timezone.utc).isoformat()
       event = {
             "event_id": str(uuid.uuid4()),
             "slot_id": slot_id,

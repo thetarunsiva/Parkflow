@@ -50,7 +50,6 @@ parsed_events = json_events.select(
 )
 
 parsed_events = parsed_events.select("event.*", "offset", "partition", "kafka_timestamp")
-parsed_events = parsed_events.withColumn("event_timestamp", to_timestamp("event_time"))
 parsed_events.printSchema()
 
 status_events = parsed_events.withColumn(
@@ -84,7 +83,7 @@ def process_batch(batch_df, batch_id):
                         current_event.slot_id,
                         current_event.lot_id,
                         current_event.event_type,
-                        current_event.event_timestamp
+                        current_event.event_time
                   )
             )
 
@@ -103,7 +102,7 @@ def process_batch(batch_df, batch_id):
                         current_event.lot_id,
                         current_event.occupied,
                         current_event.event_id,
-                        current_event.event_timestamp
+                        current_event.event_time
                   )
             )
 

@@ -1,10 +1,18 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from db import get_db_connection
 from schemas import LotOccupancy, SlotOccupancy, SlotEvents, DashboardSummary, DashboardResponse
 
 from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
+app.add_middleware(
+      CORSMiddleware,
+      allow_origins=["http://localhost:5173"],
+      allow_credentials=True,
+      allow_methods=["*"],
+      allow_headers=["*"],
+)
 
 @app.get("/")
 def home():
@@ -18,9 +26,10 @@ def get_lots():
       cursor = conn.cursor(cursor_factory=RealDictCursor)
       cursor.execute(
             """
-            SELECT lot_id, occupied_slots, available_slots, total_slots, occupancy_percentage
-            FROM lot_occupancy
-            ORDER BY lot_id;
+            SELECT lo.lot_id, pl.lot_name, lo.occupied_slots, lo.available_slots, lo.total_slots, lo.occupancy_percentage
+            FROM lot_occupancy lo
+            JOIN parking_lots pl ON pl.lot_id = lo.lot_id
+            ORDER BY lo.lot_id;
             """
       )
       rows = cursor.fetchall()
@@ -34,9 +43,10 @@ def get_lot(lot_id: str):
       cursor = conn.cursor(cursor_factory=RealDictCursor)
       cursor.execute(
             """
-            SELECT lot_id, occupied_slots, available_slots, total_slots, occupancy_percentage
-            FROM lot_occupancy
-            WHERE lot_id = %s;
+            SELECT lo.lot_id, pl.lot_name, lo.occupied_slots, lo.available_slots, lo.total_slots, lo.occupancy_percentage
+            FROM lot_occupancy lo
+            JOIN parking_lots pl ON pl.lot_id = lo.lot_id
+            WHERE lo.lot_id = %s;
             """,
             (lot_id,)
       )
@@ -129,9 +139,10 @@ def dashboard():
       summary = cursor.fetchone()
       cursor.execute(
             """
-            SELECT lot_id, occupied_slots, available_slots, total_slots, occupancy_percentage
-            FROM lot_occupancy
-            ORDER BY lot_id;
+            SELECT lo.lot_id, pl.lot_name, lo.occupied_slots, lo.available_slots, lo.total_slots, lo.occupancy_percentage
+            FROM lot_occupancy lo
+            JOIN parking_lots pl ON pl.lot_id = lo.lot_id
+            ORDER BY lo.lot_id;
             """
       )
       lots = cursor.fetchall()
