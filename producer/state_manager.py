@@ -1,13 +1,12 @@
 from config import LOTS
 
-def init_state():
+def init_state(owned_lots=None):
+      if owned_lots is None:
+            owned_lots = LOTS.keys()
       state = {}
-      for lot, slot_count in LOTS.items():
-            lot_state = {}
-            for i in range(1, slot_count+1):
-                  slot = f"T{i}"
-                  lot_state[slot] = False
-            state[lot] = lot_state
+      for lot in owned_lots:
+            slot_count = LOTS[lot];
+            state[lot] = {f"T{i}": False for i in range(1, slot_count + 1)}
       return state
 
 def apply_event(state, event):

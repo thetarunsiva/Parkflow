@@ -31,3 +31,11 @@ def generate_event(state):
       elif (occupied_slots):
             lot, slot = random.choice(occupied_slots)
             return event(lot, slot, "EXIT")
+
+def generate_events(state, count):
+      events = []
+      for _ in range(count):
+            ev = generate_event(state)
+            if ev is not None:
+                  events.append(ev)
+      return events

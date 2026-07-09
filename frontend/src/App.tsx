@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getDashboardWithAbort, getLot, getLotHistory, getLots, getSlotStatus } from './services/api';
 import type { DashboardResponse, LotOccupancy, SlotEvent, SlotOccupancy } from './types';
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 1000;
 const SLOTS_PER_LOT = 20;
 const SLOT_IDS = Array.from({ length: SLOTS_PER_LOT }, (_, i) => `T${i + 1}`);
 const TIME_ZONE = 'Asia/Kolkata';

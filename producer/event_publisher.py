@@ -7,9 +7,10 @@ producer = KafkaProducer(
       value_serializer=lambda val: json.dumps(val).encode("utf-8")
 )
 
-def publish_event(event):
+def publish_event(events):
       try:
-            producer.send(KAFKA_TOPIC, value=event)
+            for ev in events:
+                  producer.send(KAFKA_TOPIC, value=ev)
             producer.flush()
             return True
       except Exception as e:
