@@ -5,7 +5,7 @@ def init_state(owned_lots=None):
             owned_lots = LOTS.keys()
       state = {}
       for lot in owned_lots:
-            slot_count = LOTS[lot];
+            slot_count = LOTS[lot]
             state[lot] = {f"T{i}": False for i in range(1, slot_count + 1)}
       return state
 

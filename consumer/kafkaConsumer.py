@@ -3,7 +3,7 @@ from database.db_connection import get_db_connection
 import json
 
 consumer = KafkaConsumer(
-      'parking.events.raw',
+      'parkflow.events.raw',
       bootstrap_servers='kafka:29092',
       auto_offset_reset='earliest',
       group_id='parking-db-writer',

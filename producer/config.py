@@ -7,7 +7,7 @@ LOTS = {
       "LOT_6": 20
 }
 
-KAFKA_BROKER = "localhost:9092"
+KAFKA_BROKERS = ["localhost:9092", "localhost:9093", "localhost:9094"]
 KAFKA_TOPIC = "parkflow.events.raw"
 
 MIN_DELAY_SECONDS = 1
