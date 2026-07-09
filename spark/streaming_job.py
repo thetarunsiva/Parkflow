@@ -16,7 +16,7 @@ events = (
       .format("kafka")
       .option(
             "kafka.bootstrap.servers", 
-            "kafka:29092"
+            "kafka:29092,kafka-2:29092,kafka-3:29092"
       )
       .option(
             "subscribe",
