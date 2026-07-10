@@ -33,3 +33,11 @@ class DashboardSummary(BaseModel):
 class DashboardResponse(BaseModel):
       summary: DashboardSummary
       lots: list[LotOccupancy]
+
+class NLQueryRequest(BaseModel):
+      question: str
+
+class NLQueryResponse(BaseModel):
+      question: str
+      answer: str
+
