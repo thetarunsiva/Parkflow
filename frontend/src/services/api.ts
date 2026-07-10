@@ -1,4 +1,4 @@
-import type { DashboardResponse, LotOccupancy, SlotEvent, SlotOccupancy } from '../types';
+import type { DashboardResponse, LotOccupancy, SlotEvent, SlotOccupancy, NLQueryResponse } from '../types';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -40,4 +40,13 @@ export function getLotHistory(lotId: string, signal?: AbortSignal) {
 
 export function getSlotStatus(lotId: string, slotId: string, signal?: AbortSignal) {
   return request<SlotOccupancy>(`/api/lots/${lotId}/slots/${slotId}`, { signal });
+}
+
+export function askParkingQuestion(question: string) {
+  return request<NLQueryResponse>('/api/query', {
+    method: 'POST',
+    body: JSON.stringify({
+      question
+    })
+  });
 }

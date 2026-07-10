@@ -35,3 +35,8 @@ export type SlotOccupancy = {
   last_event_id: string;
   last_event_time: string;
 };
+
+export interface NLQueryResponse {
+  question: string;
+  answer: string;
+}

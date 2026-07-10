@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getDashboardWithAbort, getLot, getLotHistory, getLots, getSlotStatus } from './services/api';
+import type { FormEvent } from 'react';
+import { askParkingQuestion, getDashboardWithAbort, getLot, getLotHistory, getLots, getSlotStatus } from './services/api';
 import type { DashboardResponse, LotOccupancy, SlotEvent, SlotOccupancy } from './types';
 
 const POLL_INTERVAL_MS = 1000;
@@ -34,6 +35,10 @@ export default function App() {
   const [history, setHistory] = useState<SlotEvent[]>([]);
   const [lotDetail, setLotDetail] = useState<LotOccupancy | null>(null);
   const [slotDetail, setSlotDetail] = useState<SlotOccupancy | null>(null);
+  const [queryQuestion, setQueryQuestion] = useState('');
+  const [queryAnswer, setQueryAnswer] = useState('');
+  const [queryLoading, setQueryLoading] = useState(false);
+  const [queryError, setQueryError] = useState('');
 
   const [selectedLot, setSelectedLot] = useState('LOT_1');
   const [selectedSlot, setSelectedSlot] = useState('T1');
@@ -121,8 +126,39 @@ export default function App() {
   const liveLots = visibleLots.filter((lot) => lot.occupancy_percentage > 0).length;
   const activeSlotCount = visibleLots.find((lot) => lot.lot_id === selectedLot)?.total_slots ?? SLOTS_PER_LOT;
   const selectedLotLabel = displayLotName(selectedLotData);
+  const hasVisibleLots = visibleLots.length > 0;
+  const hasAnswer = queryAnswer.trim().length > 0;
 
   const handleRefresh = () => setRefreshTick((tick) => tick + 1);
+
+  const handleAskQuestion = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (queryLoading) {
+      return;
+    }
+
+    const trimmedQuestion = queryQuestion.trim();
+
+    if (!trimmedQuestion) {
+      return;
+    }
+
+    setQueryLoading(true);
+    setQueryError('');
+    setQueryAnswer('');
+
+    try {
+      const response = await askParkingQuestion(trimmedQuestion);
+      setQueryAnswer(response.answer);
+    } catch {
+      setQueryError('Could not get an answer right now. Please try again.');
+    } finally {
+      setQueryLoading(false);
+    }
+  };
+
+  const trimmedQuestion = queryQuestion.trim();
 
   return (
     <div className="shell">
@@ -133,16 +169,13 @@ export default function App() {
             <div>
               <h1>Parking events, lots, and slot pressure in one screen.</h1>
               <p>
-                Live control room for the FastAPI backend, polling REST endpoints every 3 seconds.
-                Layout is ready for websockets or NL2SQL later.
+                Monitor parking occupancy, live events, slot availability, and activity across
+                connected lots.
               </p>
               <div className="actions">
                 <button className="primary" onClick={handleRefresh}>
                   Refresh live data
                 </button>
-              </div>
-              <div className="runtime-note">
-                Simulator is assumed to be running externally. Set VITE_API_BASE_URL to point at the backend.
               </div>
             </div>
 
@@ -182,129 +215,178 @@ export default function App() {
           </article>
         </section>
 
-        <section className="content-grid">
-          <div className="card panel">
-            <div className="panel-head">
-              <h2>Lot overview</h2>
-              <span>Polling every 3 seconds</span>
-            </div>
-            <div className="lot-list">
-              {visibleLots.map((lot) => {
-                const percent = lot.total_slots === 0 ? 0 : (lot.occupied_slots / lot.total_slots) * 100;
-
-                return (
-                  <button
-                    key={lot.lot_id}
-                    className={`lot-card ${lot.lot_id === selectedLot ? 'active' : ''}`}
-                    onClick={() => setSelectedLot(lot.lot_id)}
-                  >
-                    <div className="lot-copy">
-                      <strong>{displayLotName(lot)}</strong>
-                      <span>{lot.lot_id}</span>
-                    </div>
-                    <div className="lot-counts">
-                      <span>{lot.occupied_slots} occupied</span>
-                      <span>{lot.available_slots} free</span>
-                    </div>
-                    <div className="bar">
-                      <div className="bar-fill" style={{ width: `${percent}%` }} />
-                    </div>
-                    <div className="lot-foot">
-                      <span>{lot.occupancy_percentage.toFixed(2)}%</span>
-                      <span>{loadFactor(lot)}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="card panel">
-            <div className="panel-head">
-              <h2>Selected lot feed</h2>
-              <span>{selectedLotLabel}</span>
-            </div>
-
-            {detailLoading && <div className="loading-state">Loading selected lot…</div>}
-
-            <div className="selected-summary">
-              <div>
-                <span>Occupied</span>
-                <strong>{selectedLotData?.occupied_slots ?? 0}</strong>
+        <section className="workspace-grid">
+          <div className="analytics-column">
+            <div className="card panel panel-tight">
+              <div className="analytics-label">Live parking system</div>
+              <div className="panel-head">
+                <h2>Lot overview</h2>
+                <span>Live polling</span>
               </div>
-              <div>
-                <span>Available</span>
-                <strong>{selectedLotData?.available_slots ?? 0}</strong>
-              </div>
-              <div>
-                <span>Rate</span>
-                <strong>{selectedLotData?.occupancy_percentage?.toFixed(2) ?? '0.00'}%</strong>
-              </div>
-            </div>
 
-            <div className="event-list">
-              {history.length === 0 ? (
-                <div className="empty-state">No recent lot events returned yet.</div>
+              {hasVisibleLots ? (
+                <div className="lot-list">
+                  {visibleLots.map((lot) => {
+                    const percent = lot.total_slots === 0 ? 0 : (lot.occupied_slots / lot.total_slots) * 100;
+
+                    return (
+                      <button
+                        key={lot.lot_id}
+                        className={`lot-card ${lot.lot_id === selectedLot ? 'active' : ''}`}
+                        onClick={() => setSelectedLot(lot.lot_id)}
+                      >
+                        <div className="lot-copy">
+                          <strong>{displayLotName(lot)}</strong>
+                          <span>{lot.lot_id}</span>
+                        </div>
+                        <div className="lot-counts">
+                          <span>{lot.occupied_slots} occupied</span>
+                          <span>{lot.available_slots} free</span>
+                        </div>
+                        <div className="bar">
+                          <div className="bar-fill" style={{ width: `${percent}%` }} />
+                        </div>
+                        <div className="lot-foot">
+                          <span>{lot.occupancy_percentage.toFixed(2)}%</span>
+                          <span>{loadFactor(lot)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
-                history.map((event) => (
-                  <article key={event.event_id} className="event-item">
-                    <div>
-                      <strong>{event.event_type}</strong>
-                      <span>{event.slot_id}</span>
-                    </div>
-                    <time>{formatTime(event.event_time)}</time>
-                  </article>
-                ))
+                <div className="empty-panel">
+                  <div className="empty-state">Waiting for live parking data…</div>
+                  <p>Start the simulator and streaming pipeline to see connected lots.</p>
+                </div>
               )}
             </div>
 
-            <div className="slot-panel">
-              <div className="panel-head compact">
-                <h3>Slot inspector</h3>
-                <span>{selectedSlot}</span>
+            <div className="card panel panel-tight analytics-detail-card">
+              <div className="panel-head">
+                <h2>Selected lot feed</h2>
+                <span>{selectedLotLabel}</span>
               </div>
 
-              <div className="slot-grid">
-                {SLOT_IDS.slice(0, activeSlotCount).map((slotId) => (
-                  <button
-                    key={slotId}
-                    className={`slot-chip ${slotId === selectedSlot ? 'active' : ''}`}
-                    onClick={() => setSelectedSlot(slotId)}
-                  >
-                    {slotId}
-                  </button>
-                ))}
+              {detailLoading && <div className="loading-state">Loading selected lot…</div>}
+
+              <div className="selected-summary">
+                <div>
+                  <span>Occupied</span>
+                  <strong>{selectedLotData?.occupied_slots ?? 0}</strong>
+                </div>
+                <div>
+                  <span>Available</span>
+                  <strong>{selectedLotData?.available_slots ?? 0}</strong>
+                </div>
+                <div>
+                  <span>Rate</span>
+                  <strong>{selectedLotData?.occupancy_percentage?.toFixed(2) ?? '0.00'}%</strong>
+                </div>
               </div>
 
-              <div className="slot-detail">
-                <div>
-                  <span>Status</span>
-                  <strong>{slotDetail ? (slotDetail.occupied ? 'Occupied' : 'Available') : '—'}</strong>
+              <div className="event-list">
+                {history.length === 0 ? (
+                  <div className="empty-state">No recent lot events returned yet.</div>
+                ) : (
+                  history.map((event) => (
+                    <article key={event.event_id} className="event-item">
+                      <div>
+                        <strong>{event.event_type}</strong>
+                        <span>{event.slot_id}</span>
+                      </div>
+                      <time>{formatTime(event.event_time)}</time>
+                    </article>
+                  ))
+                )}
+              </div>
+
+              <div className="slot-panel">
+                <div className="panel-head compact">
+                  <h3>Slot inspector</h3>
+                  <span>{selectedSlot}</span>
                 </div>
-                <div>
-                  <span>Last event</span>
-                  <strong>{slotDetail?.last_event_id ?? '—'}</strong>
+
+                <div className="slot-grid">
+                  {SLOT_IDS.slice(0, activeSlotCount).map((slotId) => (
+                    <button
+                      key={slotId}
+                      className={`slot-chip ${slotId === selectedSlot ? 'active' : ''}`}
+                      onClick={() => setSelectedSlot(slotId)}
+                    >
+                      {slotId}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <span>Updated</span>
-                  <strong>{formatSlotTime(slotDetail?.last_event_time)}</strong>
+
+                <div className="slot-detail">
+                  <div>
+                    <span>Status</span>
+                    <strong>{slotDetail ? (slotDetail.occupied ? 'Occupied' : 'Available') : '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Last event</span>
+                    <strong>{slotDetail?.last_event_id ?? '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Updated</span>
+                    <strong>{formatSlotTime(slotDetail?.last_event_time)}</strong>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
 
-        <section className="card chatbot">
-          <div className="panel-head">
-            <h2>Chat lane</h2>
-            <span>Reserved for NL2SQL and future query execution</span>
-          </div>
-          <div className="chat-placeholder">
-            <p>
-              Reserved for a future natural-language query interface with background SQL execution
-              and human-readable results.
+          <aside className="card chatbot assistant-column">
+            <div className="panel-head">
+              <h2>Ask Parkflow</h2>
+              <span>Natural language → Safe SQL → Live answer</span>
+            </div>
+
+            <p className="assistant-intro">
+              Ask questions about occupancy, entries, exits, or busy lots. 
+              Parkflow turns them into a safe read-only query and returns a plain answer.
             </p>
-          </div>
+
+            <form className="chat-form" onSubmit={handleAskQuestion}>
+              <input
+                className="chat-input"
+                type="text"
+                value={queryQuestion}
+                onChange={(event) => setQueryQuestion(event.target.value)}
+                placeholder="Which parking lot is currently busiest, with its slot count split?"
+                disabled={queryLoading}
+                aria-label="Ask Parkflow a parking question"
+              />
+              <button className="primary chat-button" type="submit" disabled={queryLoading || !trimmedQuestion}>
+                {queryLoading ? 'Thinking…' : 'Ask Parkflow'}
+              </button>
+            </form>
+
+            <div className="assistant-hints">
+              <span>Example questions</span>
+              <ul>
+                <li>Which lot is currently busiest, with its slot count split?</li>
+                <li>How many cars entered LOT_1 in the last hour?</li>
+                <li>Compare entries across all lots today.</li>
+              </ul>
+            </div>
+
+            <div className={`chat-result ${queryError ? 'is-error' : ''}`} aria-live="polite">
+              {queryLoading ? (
+                <p>Analyzing live parking data…</p>
+              ) : queryError ? (
+                <p>{queryError}</p>
+              ) : hasAnswer ? (
+                <>
+                  <span className="answer-label">PARKFLOW ANSWER</span>
+                  <p>{queryAnswer}</p>
+                </>
+              ) : (
+                <p>Ask about entries, exits, current occupancy, busiest lots, or time windows..</p>
+              )}
+            </div>
+          </aside>
         </section>
       </main>
     </div>

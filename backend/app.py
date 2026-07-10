@@ -191,7 +191,7 @@ def generate_readable_answer(question: str, rows):
             SQL QUERY RESULT: {result}
       """
       response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             contents=prompt
       )
       return response.text.strip()
@@ -344,7 +344,7 @@ def query_natural_language(request: NLQueryRequest):
             {question}
             """
       response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             contents=prompt
       )
       generated_sql = response.text.strip()
