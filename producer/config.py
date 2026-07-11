@@ -1,3 +1,5 @@
+import os
+
 LOTS = {
       "LOT_1": 20,
       "LOT_2": 20,
@@ -7,7 +9,7 @@ LOTS = {
       "LOT_6": 20
 }
 
-KAFKA_BROKERS = ["localhost:9092", "localhost:9093", "localhost:9094"]
+KAFKA_BROKERS = os.getenv("KAFKA_BROKERS", "localhost:9092, localhost:9093, localhost:9094").split(",")
 KAFKA_TOPIC = "parkflow.events.raw"
 
 MIN_DELAY_SECONDS = 1
