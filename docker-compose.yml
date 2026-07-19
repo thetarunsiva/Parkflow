@@ -107,7 +107,8 @@ services:
                   DB_USER: parkflow_user
                   DB_PASSWORD: parkflow_password
                   DB_PORT: 5432
-                  GEMINI_API_KEY: "${GEMINI_API_KEY}"
+                  GEMINI_PROXY_URL: ${GEMINI_PROXY_URL}
+                  PARKFLOW_PROXY_SECRET: ${PARKFLOW_PROXY_SECRET}
             ports:
                   - "8000:8000"
             restart: unless-stopped
