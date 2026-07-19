@@ -6,10 +6,47 @@ from schemas import LotOccupancy, SlotOccupancy, SlotEvents, DashboardSummary, D
 from psycopg2.extras import RealDictCursor
 
 from dotenv import load_dotenv
-from google import genai
+
+import os
+import requests
 
 load_dotenv()
-client = genai.Client()
+
+def call_gemini_proxy(prompt: str):
+      proxy_url = os.getenv("GEMINI_PROXY_URL") # Our vercel Proxy URL..
+      proxy_secret = os.getenv("PARKFLOW_PROXY_SECRET") # Our randomly generated secret for proxy auth..
+      if not proxy_url or not proxy_secret:
+            raise HTTPException(
+                  status_code=503,
+                  detail="The AI query service is temporarily unavailable.."
+            )
+      try:
+            response = requests.post(
+                  proxy_url,
+                  headers={
+                        "x-parkflow-api-key": proxy_secret,
+                        "Content-Type": "application/json"
+                  },
+                  json={
+                        "prompt": prompt
+                  },
+                  timeout=20
+            )
+            response.raise_for_status()
+            data = response.json()
+      except (requests.exceptions.RequestException, ValueError) as e:
+            print(f"Error calling Gemini proxy: {e}")
+            raise HTTPException(
+                  status_code=503,
+                  detail="The AI query service is temporarily unavailable.."
+            )
+      generated_text = data.get("text")
+      if generated_text:
+            raise HTTPException(
+                  status_code=503,
+                  detail="The AI query service is temporarily unavailable.."
+            )
+      return generated_text.strip()
 
 app = FastAPI()
 app.add_middleware(
@@ -190,16 +227,13 @@ def generate_readable_answer(question: str, rows):
             QUESTION: {question}
             SQL QUERY RESULT: {result}
       """
-      response = client.models.generate_content(
-            model="gemini-3.1-flash-lite",
-            contents=prompt
-      )
-      return response.text.strip()
+      return call_gemini_proxy(prompt)
 
 @app.post("/api/query", response_model=NLQueryResponse)
 def query_natural_language(request: NLQueryRequest):
       question = request.question
-      prompt = f"""
+      try:
+            prompt = f"""
             You are the NL2SQL engine for Parkflow, a real-time smart parking system.
 
             Your only task is to convert the user's natural-language question into exactly one valid PostgreSQL SELECT query.
@@ -343,28 +377,29 @@ def query_natural_language(request: NLQueryRequest):
             User question:
             {question}
             """
-      response = client.models.generate_content(
-            model="gemini-3.1-flash-lite",
-            contents=prompt
-      )
-      generated_sql = response.text.strip()
-      sql_without_semicolon = generated_sql.rstrip(';')
-      if not generated_sql.upper().startswith("SELECT"):
+            generated_sql = call_gemini_proxy(prompt)
+            sql_without_semicolon = generated_sql.rstrip(';')
+            if not generated_sql.upper().startswith("SELECT"):
+                  raise HTTPException(
+                        status_code=400,
+                        detail="Only SELECT queries are allowed!"
+                  )
+            if ';' in sql_without_semicolon:
+                  raise HTTPException (
+                        status_code=400,
+                        detail="Multiple SQL statements are not allowed!"
+                  )
+            rows = execute_sql_query(generated_sql)
+            answer = generate_readable_answer(question, rows)
+            return {
+                  "question": question,
+                  "answer": answer
+            }
+      except HTTPException as he:
+            raise he
+      except Exception as e:
+            print(f"Gemini NL2SQL pipeline error: {e}")
             raise HTTPException(
-                  status_code=400,
-                  detail="Only SELECT queries are allowed!"
+                  status_code=503,
+                  detail="The AI query service is temporarily unavailable, Please try again later.."
             )
-      if ';' in sql_without_semicolon:
-            raise HTTPException (
-                  status_code=400,
-                  detail="Multiple SQL statements are not allowed!"
-            )
-
-      response = execute_sql_query(generated_sql)
-      answer = generate_readable_answer(question, response)
-      return {
-            "question": question,
-            "answer": answer
-      }
-
-
