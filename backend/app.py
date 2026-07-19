@@ -135,10 +135,10 @@ def dashboard():
             """
             SELECT 
             COUNT(*) AS total_lots,
-            SUM(total_slots) AS total_slots,
-            SUM(occupied_slots) AS occupied_slots,
-            SUM(available_slots) AS available_slots,
-            ROUND ((SUM(occupied_slots) * 100.0) / SUM(total_slots), 2) AS occupancy_percentage
+            COALESCE(SUM(total_slots), 0) AS total_slots,
+            COALESCE(SUM(occupied_slots), 0) AS occupied_slots,
+            COALESCE(SUM(available_slots), 0) AS available_slots,
+            COALESCE(ROUND ((SUM(occupied_slots) * 100.0) / NULLIF(SUM(total_slots), 0), 2), 0.0) AS occupancy_percentage
             FROM lot_occupancy;
             """
       )
