@@ -1,12 +1,12 @@
 import os
 
 LOTS = {
-      "LOT_1": 10,
-      "LOT_2": 25,
+      "LOT_1": 20,
+      "LOT_2": 20,
       "LOT_3": 20,
-      "LOT_4": 10,
+      "LOT_4": 20,
       "LOT_5": 20,
-      "LOT_6": 40
+      "LOT_6": 20
 }
 
 KAFKA_BROKERS = os.getenv("KAFKA_BROKERS", "localhost:9092, localhost:9093, localhost:9094").split(",")
