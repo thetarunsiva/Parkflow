@@ -12,10 +12,9 @@ owned = os.getenv("OWNED_LOTS")
 owned_lots = owned.split(",") if owned else None
 state = init_state(owned_lots)
 
-EVENTS_PER_SECOND = 10
-
 try:
       while True:
+	    EVENTS_PER_SECOND = random.randint(2, 20)
             events = generate_events(state, EVENTS_PER_SECOND)
             success = publish_event(events)
             if not success:
@@ -24,7 +23,8 @@ try:
             for event in events:
                   apply_event(state, event)
                   print(f"[{event['event_type']}] " f"{event['lot_id']} - {event['slot_id']}")
-            time.sleep(1)
+	    delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+            time.sleep(delay)
 except KeyboardInterrupt:
       print("\nParkflow simulation stopping..")
       time.sleep(1)

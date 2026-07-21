@@ -41,7 +41,7 @@ def call_gemini_proxy(prompt: str):
                   detail="The AI query service is temporarily unavailable.."
             )
       generated_text = data.get("text")
-      if generated_text:
+      if not generated_text:
             raise HTTPException(
                   status_code=503,
                   detail="The AI query service is temporarily unavailable.."
